@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "مولّد الإعلانات"
+version = "1.0.0"
+id = "artifacts/ad-generator"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24770
+
+[services.development]
+run = "pnpm --filter @workspace/ad-generator run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ad-generator", "run", "build" ]
+publicDir = "artifacts/ad-generator/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24770"
+BASE_PATH = "/"
