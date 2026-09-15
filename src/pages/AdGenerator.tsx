@@ -76,6 +76,19 @@ const DEFAULT_FREE_DATA: FreeCardData = {
   venue: "",
 };
 
+/* ── Download helper — works on iOS Safari (opens in new tab) ── */
+function downloadDataUrl(dataUrl: string, filename: string) {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    const win = window.open();
+    if (win) { win.document.write(`<img src="${dataUrl}" style="max-width:100%">`); return; }
+  }
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = dataUrl;
+  link.click();
+}
+
 /* ── Sanitise a title string into a safe filename (no extension) ── */
 function toFilename(title: string, fallback: string): string {
   const s = title
@@ -253,7 +266,7 @@ const ImagePanControl = ({
 export default function AdGenerator() {
   /* ── Standard card state ── */
   const [data, setData] = useState<EventAdData>({ ...DEFAULT_DATA });
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("jpeg");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("png");
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingEn, setIsExportingEn] = useState(false);
   const [enData, setEnData] = useState<EventAdData | null>(null);
@@ -360,10 +373,7 @@ export default function AdGenerator() {
         pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, activeW, activeH);
         pdf.save(`${toFilename(titleTr, "event-announcement")}.pdf`);
       } else {
-        const link = document.createElement("a");
-        link.download = `${toFilename(titleTr, "event-announcement")}.${fmt.ext}`;
-        link.href = canvas.toDataURL(fmt.mime, fmt.quality);
-        link.click();
+        downloadDataUrl(canvas.toDataURL(fmt.mime, fmt.quality), `${toFilename(titleTr, "event-announcement")}.${fmt.ext}`);
       }
     } catch (err) {
       console.error(err);
@@ -505,10 +515,7 @@ export default function AdGenerator() {
         pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, cW, cH);
         pdf.save(`${toFilename(title, "بطاقة-حرة")}.pdf`);
       } else {
-        const link = document.createElement("a");
-        link.download = `${toFilename(title, "بطاقة-حرة")}.${fmt.ext}`;
-        link.href = canvas.toDataURL(fmt.mime, fmt.quality);
-        link.click();
+        downloadDataUrl(canvas.toDataURL(fmt.mime, fmt.quality), `${toFilename(title, "بطاقة-حرة")}.${fmt.ext}`);
       }
     } catch (err) { console.error(err); }
     finally { setIsExportingFree(false); }
@@ -604,10 +611,7 @@ export default function AdGenerator() {
         pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, activeW, activeH);
         pdf.save(`${toFilename(data.eventTitle, "إعلان-فعالية")}.pdf`);
       } else {
-        const link = document.createElement("a");
-        link.download = `${toFilename(data.eventTitle, "إعلان-فعالية")}.${fmt.ext}`;
-        link.href = canvas.toDataURL(fmt.mime, fmt.quality);
-        link.click();
+        downloadDataUrl(canvas.toDataURL(fmt.mime, fmt.quality), `${toFilename(data.eventTitle, "إعلان-فعالية")}.${fmt.ext}`);
       }
     } catch (err) {
       console.error(err);
