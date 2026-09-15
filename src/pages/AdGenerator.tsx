@@ -20,6 +20,7 @@ import {
   CANVAS_W_L, CANVAS_H_L,
   EventAdLandscapeCanvas,
 } from "@/components/TemplateLandscapeCanvas";
+import { EventAdCanvas2 } from "@/components/Template2Canvas";
 import {
   FREE_CANVAS_W, FREE_CANVAS_H,
   FreeCard,
@@ -282,6 +283,9 @@ export default function AdGenerator() {
   const bgInputId  = useId();
   const qrInputId  = useId();
   const [qrUrl, setQrUrl] = useState("");
+
+  /* ── Template selection (1 = classic, 2 = full-immersion) ── */
+  const [templateId, setTemplateId] = useState<1 | 2>(1);
 
   /* ── Free card state ── */
   const [cardMode, setCardMode] = useState<"standard" | "free">("standard");
@@ -632,9 +636,11 @@ export default function AdGenerator() {
         zIndex: -1, pointerEvents: "none",
       }}>
         <div ref={exportRef} style={{ width: activeW, height: activeH }}>
-          {orientation === "portrait"
-            ? <EventAdCanvas data={data} />
-            : <EventAdLandscapeCanvas data={data} />
+          {templateId === 2
+            ? <EventAdCanvas2 data={data} />
+            : orientation === "portrait"
+              ? <EventAdCanvas data={data} />
+              : <EventAdLandscapeCanvas data={data} />
           }
         </div>
       </div>
@@ -667,9 +673,12 @@ export default function AdGenerator() {
         zIndex: -1, pointerEvents: "none",
       }}>
         <div ref={enExportRef} style={{ width: activeW, height: activeH }}>
-          {enData && (orientation === "portrait"
-            ? <EventAdCanvas data={enData} />
-            : <EventAdLandscapeCanvas data={enData} />
+          {enData && (
+            templateId === 2
+              ? <EventAdCanvas2 data={enData} />
+              : orientation === "portrait"
+                ? <EventAdCanvas data={enData} />
+                : <EventAdLandscapeCanvas data={enData} />
           )}
         </div>
       </div>
@@ -726,6 +735,34 @@ export default function AdGenerator() {
               </div>
             )}
           </Section>}
+
+          {/* Template selector — shown only for standard cards */}
+          {cardMode === "standard" && (
+            <Section title="القالب">
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  { id: 1 as const, label: "القالب الأول", desc: "تصميم كلاسيكي بموجة" },
+                  { id: 2 as const, label: "القالب الثاني", desc: "تصميم غامر بصورة كاملة" },
+                ] as const).map(t => (
+                  <button key={t.id} onClick={() => setTemplateId(t.id)}
+                    style={{
+                      border: `2px solid ${templateId === t.id ? "#5ab8b0" : "rgba(255,255,255,0.12)"}`,
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      background: templateId === t.id ? "rgba(90,184,176,0.12)" : "transparent",
+                      cursor: "pointer",
+                      textAlign: "center",
+                      transition: "all 0.15s",
+                    }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: templateId === t.id ? "#5ab8b0" : "inherit" }}>
+                      {t.label}
+                    </div>
+                    <div style={{ fontSize: 11, opacity: 0.65, marginTop: 2 }}>{t.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </Section>
+          )}
 
           {/* Card type selector */}
           <Section title="نوع البطاقة">
@@ -1320,6 +1357,7 @@ export default function AdGenerator() {
               data={data}
               activeW={activeW}
               activeH={activeH}
+              templateId={templateId}
             />
           </div>
 
@@ -1345,7 +1383,7 @@ export default function AdGenerator() {
 /* ── Preview canvas — isolated to avoid IIFE in JSX ── */
 function PreviewCanvas({
   cardMode, freeOrientation, orientation, wrapperRef, scale,
-  freeData, data, activeW, activeH,
+  freeData, data, activeW, activeH, templateId,
 }: {
   cardMode: "standard" | "free";
   freeOrientation: "portrait" | "landscape";
@@ -1356,6 +1394,7 @@ function PreviewCanvas({
   data: EventAdData;
   activeW: number;
   activeH: number;
+  templateId: 1 | 2;
 }) {
   const isFreeLand = cardMode === "free" && freeOrientation === "landscape";
   const isPortrait = cardMode === "free" ? freeOrientation === "portrait" : orientation === "portrait";
@@ -1385,9 +1424,11 @@ function PreviewCanvas({
           ? (freeOrientation === "landscape"
               ? <FreeCardLandscape data={freeData} />
               : <FreeCard data={freeData} />)
-          : orientation === "portrait"
-            ? <EventAdCanvas data={data} />
-            : <EventAdLandscapeCanvas data={data} />
+          : templateId === 2
+            ? <EventAdCanvas2 data={data} />
+            : orientation === "portrait"
+              ? <EventAdCanvas data={data} />
+              : <EventAdLandscapeCanvas data={data} />
         }
       </div>
     </div>
