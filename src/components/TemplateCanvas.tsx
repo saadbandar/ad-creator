@@ -2,7 +2,7 @@
    PSAU Event Announcement Template — Portrait 1080×1920
    Layout matches reference: 36adf217-6621-47c2-94ea-1518ac99ca8b
 ─────────────────────────────────────────────────────────────────── */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import patternImg        from "@assets/image2.png";
 import patternTransparent from "@assets/pattern_transparent.png";
 import socialBar    from "@assets/image3.png";
@@ -91,6 +91,18 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
     footer:      isEn ? "Public Relations Unit" : "وحدة العلاقات العامة",
   };
 
+  /* Content scale — shrinks text when it overflows the fixed white area */
+  const contentRef  = useRef<HTMLDivElement>(null);
+  const [contentScale, setContentScale] = useState(1);
+  const MAX_CONTENT_H = 1790 - 710 - 36; // available px in white section
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const h = el.scrollHeight;
+    setContentScale(h > MAX_CONTENT_H ? MAX_CONTENT_H / h : 1);
+  });
+
   /* Pre-convert social bar to white so CSS filter isn't needed during export */
   const [whiteSocial, setWhiteSocial] = useState(socialBar);
   useEffect(() => {
@@ -111,11 +123,15 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
     img.src = socialBar;
   }, []);
 
+  const PHOTO_H    = 700;
+  const CURVE_TOP  = 598;
+  const WHITE_TOP  = 710;
+  const FOOTER_TOP = 1790;
+
   return (
     <div style={{
       width: CANVAS_W, height: CANVAS_H,
-      display: "flex", flexDirection: "column",
-      overflow: "hidden",
+      position: "relative", overflow: "hidden",
       backgroundColor: "#ffffff",
       fontFamily: "'Cairo','Arial',sans-serif",
       direction: isEn ? "ltr" : "rtl",
@@ -123,20 +139,18 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
     }}>
 
       {/* ══════════════════════════════════════
-          1. PHOTO SECTION — flex: 1, shrinks when content grows
+          1. PHOTO SECTION — fixed height
       ══════════════════════════════════════ */}
-      <div style={{ flex: "1 1 0", minHeight: 320, position: "relative", overflow: "hidden" }}>
-
-        {/* Background photo */}
-        <img src={bgImage} alt="" crossOrigin="anonymous" style={{
-          position: "absolute", inset: 0,
-          width: "100%", height: "100%", objectFit: "cover",
-          objectPosition: `${bgPositionX ?? 50}% ${bgPositionY ?? 50}%`,
-          transform: `scale(${bgZoom ?? 1})`,
-          transformOrigin: `${bgPositionX ?? 50}% ${bgPositionY ?? 50}%`,
-        }} />
-
-        {/* Dark teal gradient overlay */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: PHOTO_H }}>
+        <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+          <img src={bgImage} alt="" crossOrigin="anonymous" style={{
+            position: "absolute", inset: 0,
+            width: "100%", height: "100%", objectFit: "cover",
+            objectPosition: `${bgPositionX ?? 50}% ${bgPositionY ?? 50}%`,
+            transform: `scale(${bgZoom ?? 1})`,
+            transformOrigin: `${bgPositionX ?? 50}% ${bgPositionY ?? 50}%`,
+          }} />
+        </div>
         <div style={{
           position: "absolute", inset: 0,
           background: `linear-gradient(170deg,
@@ -145,47 +159,34 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
             ${DARK_TEAL}c0 80%,
             ${DARK_TEAL}95 100%)`,
         }} />
-
-        {/* Pattern watermark */}
         <img src={patternImg} alt="" crossOrigin="anonymous" style={{
           position: "absolute", inset: 0,
           width: "100%", height: "100%",
           objectFit: "cover", opacity: 0.07, pointerEvents: "none",
           mixBlendMode: "overlay",
         }} />
-
-        {/* University logo — top right */}
-        <div style={{ position: "absolute", top: 32, right: 36, zIndex: 20 }}>
-          <img src={logoUnivWhite} alt="" crossOrigin="anonymous"
-            style={{ width: 240, display: "block" }} />
-        </div>
-
-        {/* Card type label — bottom of photo */}
         <div style={{
-          position: "absolute",
-          bottom: 148,
-          left: 0, right: 0,
-          padding: "0 64px",
-          textAlign: "center",
-          zIndex: 5,
+          position: "absolute", bottom: 148, left: 0, right: 0,
+          padding: "0 64px", textAlign: "center", zIndex: 5,
         }}>
-          <span style={{
-            color: "#ffffff",
-            fontSize: 110,
-            fontWeight: 900,
-            lineHeight: 1,
-            display: "block",
-          }}>
+          <span style={{ color: "#ffffff", fontSize: 110, fontWeight: 900, lineHeight: 1, display: "block" }}>
             {L.card}
           </span>
         </div>
       </div>
 
       {/* ══════════════════════════════════════
-          2. WAVE — pulled 72px up into photo via negative margin
+          2. UNIVERSITY LOGO
       ══════════════════════════════════════ */}
-      <div style={{ flex: "0 0 auto", marginTop: -72, position: "relative", zIndex: 15, pointerEvents: "none" }}>
-        <svg viewBox="0 0 1080 120" preserveAspectRatio="none" width="1080" height="120" style={{ display: "block" }}>
+      <div style={{ position: "absolute", top: 32, right: 36, zIndex: 20 }}>
+        <img src={logoUnivWhite} alt="" crossOrigin="anonymous" style={{ width: 240, display: "block" }} />
+      </div>
+
+      {/* ══════════════════════════════════════
+          3. WAVE CURVE
+      ══════════════════════════════════════ */}
+      <div style={{ position: "absolute", top: CURVE_TOP, left: 0, right: 0, height: 120, zIndex: 15 }}>
+        <svg viewBox="0 0 1080 120" preserveAspectRatio="none" width="1080" height="120">
           <defs>
             <linearGradient id="arcFillGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%"   stopColor={TEAL} stopOpacity="0"   />
@@ -201,183 +202,164 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
       </div>
 
       {/* ══════════════════════════════════════
-          3. WHITE CONTENT SECTION — auto height
+          4. WHITE SECTION — fixed bounds, content scales down to fit
       ══════════════════════════════════════ */}
       <div style={{
-        flex: "0 0 auto",
+        position: "absolute",
+        top: WHITE_TOP, left: 0, right: 0,
+        bottom: CANVAS_H - FOOTER_TOP,
         backgroundColor: "#ffffff",
-        position: "relative",
-        overflow: "hidden",
-        zIndex: 5,
-        marginTop: -2,
+        zIndex: 5, overflow: "hidden",
       }}>
-        {/* Pattern overlay */}
         <img src={patternTransparent} alt="" crossOrigin="anonymous" style={{
           position: "absolute", inset: 0,
           width: "100%", height: "100%",
-          objectFit: "cover",
-          objectPosition: "center top",
-          opacity: 0.13,
-          pointerEvents: "none",
+          objectFit: "cover", objectPosition: "center top",
+          opacity: 0.13, pointerEvents: "none",
           WebkitMaskImage: "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 40%, transparent 80%)",
           maskImage:        "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.5) 40%, transparent 80%)",
         }} />
 
-        {/* Content column */}
+        {/* Outer wrapper — used to measure overflow; scale applied here */}
         <div style={{
-          position: "relative", zIndex: 2,
-          display: "flex", flexDirection: "column",
-          alignItems: "center",
-          padding: "32px 64px 40px 64px",
-          boxSizing: "border-box",
-          gap: 0,
+          position: "absolute", inset: 0,
+          display: "flex", alignItems: "flex-start",
+          overflow: "hidden",
         }}>
-
-          {/* Invitation / announcement text */}
-          <div style={{
-            width: "100%",
-            textAlign: "center",
-            display: "flex", flexDirection: "column", gap: 6,
-          }}>
-            <p style={{ color: DEEP_GREEN, fontSize: 44, fontWeight: 700, margin: 0, lineHeight: 1.65 }}>
-              {L.verb} {L.college}
-            </p>
-            {representedBy && (
-              <p style={{ color: DARK_TEAL, fontSize: 46, fontWeight: 600, margin: 0, lineHeight: 1.5 }}>
-                {L.repBy} {representedBy}
-              </p>
-            )}
-            <p style={{ color: "#1a1a1a", fontSize: 52, fontWeight: 500, margin: 0, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>
-              {eventType}
-            </p>
-          </div>
-
-          {/* Event title */}
-          <div style={{ marginTop: 32, width: "100%", textAlign: "center" }}>
-            <p style={{
-              color: TEAL,
-              fontSize: 64,
-              fontWeight: 900,
-              lineHeight: 1.45,
-              margin: 0,
-              whiteSpace: "pre-wrap",
+          <div
+            ref={contentRef}
+            style={{
+              width: "100%",
+              transform: `scale(${contentScale})`,
+              transformOrigin: "top center",
+            }}
+          >
+            {/* Content column */}
+            <div style={{
+              position: "relative", zIndex: 2,
+              display: "flex", flexDirection: "column",
+              alignItems: "center",
+              padding: "90px 64px 40px 64px",
+              boxSizing: "border-box",
+              gap: 0,
             }}>
-              {eventTitle}
-            </p>
-            {data.presenter && (
-              <p style={{
-                color: DARK_TEAL,
-                fontSize: 46,
-                fontWeight: 600,
-                lineHeight: 1.5,
-                margin: "18px 0 0",
-                whiteSpace: "pre-wrap",
-              }}>
-                {isEn ? "Presented by: " : "من تقديم: "}{data.presenter}
-              </p>
-            )}
-          </div>
 
-          {/* INFO CARD */}
-          <div style={{
-            marginTop: 36,
-            width: "100%",
-            backgroundColor: "#eaf5f4",
-            borderRadius: 26,
-            padding: "36px 40px",
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 32,
-            direction: "ltr",
-            boxSizing: "border-box",
-          }}>
+              {/* Invitation / announcement text */}
+              <div style={{ width: "100%", textAlign: "center", display: "flex", flexDirection: "column", gap: 6 }}>
+                <p style={{ color: DEEP_GREEN, fontSize: 44, fontWeight: 700, margin: 0, lineHeight: 1.65 }}>
+                  {L.verb} {L.college}
+                </p>
+                {representedBy && (
+                  <p style={{ color: DARK_TEAL, fontSize: 46, fontWeight: 600, margin: 0, lineHeight: 1.5 }}>
+                    {L.repBy} {representedBy}
+                  </p>
+                )}
+                <p style={{ color: "#1a1a1a", fontSize: 52, fontWeight: 500, margin: 0, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>
+                  {eventType}
+                </p>
+              </div>
 
-            {/* QR CODE */}
-            {isOnline && (
-              <div style={{
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 220,
-                height: 220,
-                backgroundColor: "#fff",
-                borderRadius: 16,
-                padding: 8,
-              }}>
-                {qrCodeImage ? (
-                  <img src={qrCodeImage} alt="QR" crossOrigin="anonymous"
-                    style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 8 }} />
-                ) : (
-                  <div style={{
-                    width: "100%", height: "100%",
-                    border: `3px dashed ${TEAL}`,
-                    borderRadius: 10,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <span style={{ color: TEAL, fontSize: 22, textAlign: "center", fontWeight: 600 }}>QR</span>
-                  </div>
+              {/* Event title + presenter */}
+              <div style={{ marginTop: 36, width: "100%", textAlign: "center" }}>
+                <p style={{ color: TEAL, fontSize: 64, fontWeight: 900, lineHeight: 1.45, margin: 0, whiteSpace: "pre-wrap" }}>
+                  {eventTitle}
+                </p>
+                {data.presenter && (
+                  <p style={{ color: DARK_TEAL, fontSize: 46, fontWeight: 600, lineHeight: 1.5, margin: "18px 0 0", whiteSpace: "pre-wrap" }}>
+                    {isEn ? "Presented by: " : "من تقديم: "}{data.presenter}
+                  </p>
                 )}
               </div>
-            )}
 
-            {/* INFO ROWS */}
-            <div style={{
-              flex: 1,
-              display: "flex", flexDirection: "column",
-              gap: 22,
-              direction: isEn ? "ltr" : "rtl",
-            }}>
-              <InfoRow icon={iconClock}    text={timeDisplay} isEn={isEn} />
-              <InfoRow icon={iconCalendar} text={`${day}  ${date}`} isEn={isEn} />
-              {isOnline ? (
-                <InfoRow
-                  icon={iconLocation}
-                  text={L.online}
-                  subText={platformName}
-                  subLogo={platformLogo}
-                  urlText={meetingUrl || undefined}
-                  isEn={isEn}
-                />
-              ) : (
-                <InfoRow icon={iconLocation} text={venue} isEn={isEn} />
-              )}
-              {hasCertificate && (
-                <InfoRow icon={iconCert} text={L.certificate} isEn={isEn} />
-              )}
+              {/* INFO CARD */}
+              <div style={{
+                marginTop: "auto",
+                marginBlockStart: 36,
+                width: "100%",
+                backgroundColor: "#eaf5f4",
+                borderRadius: 26,
+                padding: "36px 40px",
+                display: "flex", flexDirection: "row",
+                alignItems: "center",
+                gap: 32,
+                direction: "ltr",
+                boxSizing: "border-box",
+              }}>
+
+                {/* QR CODE — wrapped in <a> so it's clickable in preview */}
+                {isOnline && (
+                  <div style={{
+                    flexShrink: 0,
+                    width: 220, height: 220,
+                    backgroundColor: "#fff",
+                    borderRadius: 16,
+                    padding: 8,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    {qrCodeImage ? (
+                      <a
+                        href={meetingUrl || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "block",
+                          width: "100%", height: "100%",
+                          pointerEvents: "auto",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <img src={qrCodeImage} alt="QR" crossOrigin="anonymous"
+                          style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 8 }} />
+                      </a>
+                    ) : (
+                      <div style={{
+                        width: "100%", height: "100%",
+                        border: `3px dashed ${TEAL}`,
+                        borderRadius: 10,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <span style={{ color: TEAL, fontSize: 22, textAlign: "center", fontWeight: 600 }}>QR</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* INFO ROWS */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 22, direction: isEn ? "ltr" : "rtl" }}>
+                  <InfoRow icon={iconClock}    text={timeDisplay} isEn={isEn} />
+                  <InfoRow icon={iconCalendar} text={`${day}  ${date}`} isEn={isEn} />
+                  {isOnline ? (
+                    <InfoRow icon={iconLocation} text={L.online} subText={platformName} subLogo={platformLogo} urlText={meetingUrl || undefined} isEn={isEn} />
+                  ) : (
+                    <InfoRow icon={iconLocation} text={venue} isEn={isEn} />
+                  )}
+                  {hasCertificate && <InfoRow icon={iconCert} text={L.certificate} isEn={isEn} />}
+                </div>
+              </div>
+
             </div>
           </div>
-
         </div>
       </div>
 
       {/* ══════════════════════════════════════
-          4. FOOTER — dark teal bar, fixed 130px
+          5. FOOTER
       ══════════════════════════════════════ */}
       <div style={{
-        flex: "0 0 130px",
+        position: "absolute",
+        top: FOOTER_TOP, left: 0, right: 0, bottom: 0,
         backgroundColor: DARK_TEAL,
         zIndex: 20,
-        display: "flex",
-        alignItems: "center",
+        display: "flex", alignItems: "center",
         padding: "0 36px",
         direction: "ltr",
         gap: 24,
       }}>
-        <span style={{
-          color: "#ffffff",
-          fontSize: 32,
-          fontWeight: 700,
-          fontFamily: "inherit",
-          flexShrink: 0,
-          letterSpacing: 0,
-        }}>
+        <span style={{ color: "#ffffff", fontSize: 32, fontWeight: 700, fontFamily: "inherit", flexShrink: 0, letterSpacing: 0 }}>
           {L.footer}
         </span>
         <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
-          <img src={whiteSocial} alt="" crossOrigin="anonymous"
-            style={{ height: 80, objectFit: "contain" }} />
+          <img src={whiteSocial} alt="" crossOrigin="anonymous" style={{ height: 80, objectFit: "contain" }} />
         </div>
       </div>
 
