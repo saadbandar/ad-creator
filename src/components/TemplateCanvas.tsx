@@ -111,15 +111,11 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
     img.src = socialBar;
   }, []);
 
-  const PHOTO_H    = 700;
-  const CURVE_TOP  = 598;
-  const WHITE_TOP  = 710;
-  const FOOTER_TOP = 1790;
-
   return (
     <div style={{
       width: CANVAS_W, height: CANVAS_H,
-      position: "relative", overflow: "hidden",
+      display: "flex", flexDirection: "column",
+      overflow: "hidden",
       backgroundColor: "#ffffff",
       fontFamily: "'Cairo','Arial',sans-serif",
       direction: isEn ? "ltr" : "rtl",
@@ -127,20 +123,18 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
     }}>
 
       {/* ══════════════════════════════════════
-          1. PHOTO SECTION + DARK TEAL OVERLAY
+          1. PHOTO SECTION — flex: 1, shrinks when content grows
       ══════════════════════════════════════ */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: PHOTO_H }}>
+      <div style={{ flex: "1 1 0", minHeight: 320, position: "relative", overflow: "hidden" }}>
 
-        {/* Background photo — with pan + zoom */}
-        <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-          <img src={bgImage} alt="" crossOrigin="anonymous" style={{
-            position: "absolute", inset: 0,
-            width: "100%", height: "100%", objectFit: "cover",
-            objectPosition: `${bgPositionX ?? 50}% ${bgPositionY ?? 50}%`,
-            transform: `scale(${bgZoom ?? 1})`,
-            transformOrigin: `${bgPositionX ?? 50}% ${bgPositionY ?? 50}%`,
-          }} />
-        </div>
+        {/* Background photo */}
+        <img src={bgImage} alt="" crossOrigin="anonymous" style={{
+          position: "absolute", inset: 0,
+          width: "100%", height: "100%", objectFit: "cover",
+          objectPosition: `${bgPositionX ?? 50}% ${bgPositionY ?? 50}%`,
+          transform: `scale(${bgZoom ?? 1})`,
+          transformOrigin: `${bgPositionX ?? 50}% ${bgPositionY ?? 50}%`,
+        }} />
 
         {/* Dark teal gradient overlay */}
         <div style={{
@@ -152,7 +146,7 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
             ${DARK_TEAL}95 100%)`,
         }} />
 
-        {/* Pattern / vector watermark over the dark overlay */}
+        {/* Pattern watermark */}
         <img src={patternImg} alt="" crossOrigin="anonymous" style={{
           position: "absolute", inset: 0,
           width: "100%", height: "100%",
@@ -160,7 +154,13 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
           mixBlendMode: "overlay",
         }} />
 
-        {/* ── Card type label — large white text over the photo ── */}
+        {/* University logo — top right */}
+        <div style={{ position: "absolute", top: 32, right: 36, zIndex: 20 }}>
+          <img src={logoUnivWhite} alt="" crossOrigin="anonymous"
+            style={{ width: 240, display: "block" }} />
+        </div>
+
+        {/* Card type label — bottom of photo */}
         <div style={{
           position: "absolute",
           bottom: 148,
@@ -182,23 +182,10 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
       </div>
 
       {/* ══════════════════════════════════════
-          2. UNIVERSITY LOGO — top (white)
+          2. WAVE — pulled 72px up into photo via negative margin
       ══════════════════════════════════════ */}
-      <div style={{
-        position: "absolute", top: 32, right: 36, zIndex: 20,
-      }}>
-        <img src={logoUnivWhite} alt="" crossOrigin="anonymous"
-          style={{ width: 240, display: "block" }} />
-      </div>
-
-      {/* ══════════════════════════════════════
-          3. SVG WAVE CURVE + decorative arc
-      ══════════════════════════════════════ */}
-      <div style={{
-        position: "absolute", top: CURVE_TOP, left: 0, right: 0,
-        height: 120, zIndex: 15,
-      }}>
-        <svg viewBox="0 0 1080 120" preserveAspectRatio="none" width="1080" height="120">
+      <div style={{ flex: "0 0 auto", marginTop: -72, position: "relative", zIndex: 15, pointerEvents: "none" }}>
+        <svg viewBox="0 0 1080 120" preserveAspectRatio="none" width="1080" height="120" style={{ display: "block" }}>
           <defs>
             <linearGradient id="arcFillGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%"   stopColor={TEAL} stopOpacity="0"   />
@@ -209,27 +196,24 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
             </linearGradient>
           </defs>
           <path d="M0,120 L0,72 Q540,8 1080,72 L1080,120 Z" fill="#ffffff" />
-          <path
-            d="M0,72 Q540,8 1080,72 Q540,36 0,72 Z"
-            fill="url(#arcFillGrad)"
-          />
+          <path d="M0,72 Q540,8 1080,72 Q540,36 0,72 Z" fill="url(#arcFillGrad)" />
         </svg>
       </div>
 
       {/* ══════════════════════════════════════
-          4. WHITE SECTION
+          3. WHITE CONTENT SECTION — auto height
       ══════════════════════════════════════ */}
       <div style={{
-        position: "absolute",
-        top: WHITE_TOP, left: 0, right: 0,
-        bottom: CANVAS_H - FOOTER_TOP,
+        flex: "0 0 auto",
         backgroundColor: "#ffffff",
-        zIndex: 5, overflow: "hidden",
+        position: "relative",
+        overflow: "hidden",
+        zIndex: 5,
+        marginTop: -2,
       }}>
         {/* Pattern overlay */}
         <img src={patternTransparent} alt="" crossOrigin="anonymous" style={{
-          position: "absolute",
-          inset: 0,
+          position: "absolute", inset: 0,
           width: "100%", height: "100%",
           objectFit: "cover",
           objectPosition: "center top",
@@ -244,13 +228,12 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
           position: "relative", zIndex: 2,
           display: "flex", flexDirection: "column",
           alignItems: "center",
-          padding: "90px 64px 40px 64px",
-          height: "100%",
+          padding: "32px 64px 40px 64px",
           boxSizing: "border-box",
           gap: 0,
         }}>
 
-          {/* ── Invitation / announcement text ── */}
+          {/* Invitation / announcement text */}
           <div style={{
             width: "100%",
             textAlign: "center",
@@ -269,8 +252,8 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
             </p>
           </div>
 
-          {/* ── Event title ── */}
-          <div style={{ marginTop: 36, width: "100%", textAlign: "center" }}>
+          {/* Event title */}
+          <div style={{ marginTop: 32, width: "100%", textAlign: "center" }}>
             <p style={{
               color: TEAL,
               fontSize: 64,
@@ -290,14 +273,14 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
                 margin: "18px 0 0",
                 whiteSpace: "pre-wrap",
               }}>
-                من تقديم: {data.presenter}
+                {isEn ? "Presented by: " : "من تقديم: "}{data.presenter}
               </p>
             )}
           </div>
 
-          {/* ── INFO CARD ── */}
+          {/* INFO CARD */}
           <div style={{
-            marginTop: "auto",
+            marginTop: 36,
             width: "100%",
             backgroundColor: "#eaf5f4",
             borderRadius: 26,
@@ -370,11 +353,10 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
       </div>
 
       {/* ══════════════════════════════════════
-          5. FOOTER — dark teal bar
+          4. FOOTER — dark teal bar, fixed 130px
       ══════════════════════════════════════ */}
       <div style={{
-        position: "absolute",
-        top: FOOTER_TOP, left: 0, right: 0, bottom: 0,
+        flex: "0 0 130px",
         backgroundColor: DARK_TEAL,
         zIndex: 20,
         display: "flex",

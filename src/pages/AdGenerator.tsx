@@ -318,11 +318,12 @@ export default function AdGenerator() {
     const activeH = orientation === "portrait" ? CANVAS_H   : CANVAS_H_L;
     try {
       /* Translate user-entered fields in parallel */
-      const [repTr, typeTr, titleTr, venueTr] = await Promise.all([
+      const [repTr, typeTr, titleTr, venueTr, presenterTr] = await Promise.all([
         tr(data.representedBy ?? ""),
         tr(data.eventType),
         tr(data.eventTitle),
         tr(data.venue),
+        tr(data.presenter ?? ""),
       ]);
 
       /* Re-format date/time in English */
@@ -344,6 +345,7 @@ export default function AdGenerator() {
         eventType:  typeTr,
         eventTitle: titleTr,
         venue:      venueTr,
+        presenter:  presenterTr,
         time: timeEn, timeTo: timeToEn, day: dayEn, date: dateEn,
         language: "en",
       };
@@ -1164,10 +1166,20 @@ export default function AdGenerator() {
                 </label>
 
                 {data.qrCodeImage && (
-                  <button onClick={() => { set("qrCodeImage", undefined); setQrUrl(""); }}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                    ✕ إزالة الباركود
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {/* QR preview — click to open the URL */}
+                    {qrUrl && (
+                      <a href={qrUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 hover:bg-primary/10 transition-colors">
+                        <img src={data.qrCodeImage} alt="QR" className="w-10 h-10 rounded" />
+                        <span className="text-xs text-primary font-medium">افتح الرابط ↗</span>
+                      </a>
+                    )}
+                    <button onClick={() => { set("qrCodeImage", undefined); setQrUrl(""); }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                      ✕ إزالة الباركود
+                    </button>
+                  </div>
                 )}
               </div>
             )}
