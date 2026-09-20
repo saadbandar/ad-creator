@@ -366,27 +366,32 @@ export default function AdGenerator() {
     const activeW = orientation === "portrait" ? CANVAS_W   : CANVAS_W_L;
     const activeH = orientation === "portrait" ? CANVAS_H   : CANVAS_H_L;
     try {
-      /* Translate user-entered fields in parallel */
-      const [repTr, typeTr, titleTr, venueTr, presenterTr] = await Promise.all([
+      /* Pre-compute English date/time from raw pickers when available */
+      const enDateFromRaw = rawDate ? (() => {
+        const d = new Date(rawDate + "T12:00:00");
+        return {
+          day:  new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d),
+          date: new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", year: "numeric" }).format(d),
+        };
+      })() : null;
+
+      /* Translate ALL user-entered fields in parallel.
+         For time/day/date: use formatted English if raw picker values exist,
+         otherwise fall back to translating the stored Arabic display value. */
+      const [
+        repTr, typeTr, titleTr, venueTr, presenterTr,
+        timeTr, timeToTr, dayTr, dateTr,
+      ] = await Promise.all([
         tr(data.representedBy ?? ""),
         tr(data.eventType),
         tr(data.eventTitle),
         tr(data.venue),
         tr(data.presenter ?? ""),
+        rawTime   ? Promise.resolve(formatEn12(rawTime))   : tr(data.time),
+        rawTimeTo ? Promise.resolve(formatEn12(rawTimeTo)) : (data.timeTo ? tr(data.timeTo) : Promise.resolve<string | undefined>(undefined)),
+        enDateFromRaw ? Promise.resolve(enDateFromRaw.day)  : tr(data.day),
+        enDateFromRaw ? Promise.resolve(enDateFromRaw.date) : tr(data.date),
       ]);
-
-      /* Re-format date/time in English */
-      let timeEn   = data.time;
-      let timeToEn = data.timeTo;
-      let dayEn    = data.day;
-      let dateEn   = data.date;
-      if (rawTime)   timeEn   = formatEn12(rawTime);
-      if (rawTimeTo) timeToEn = formatEn12(rawTimeTo);
-      if (rawDate) {
-        const d = new Date(rawDate + "T12:00:00");
-        dayEn  = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d);
-        dateEn = new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", year: "numeric" }).format(d);
-      }
 
       const translated: EventAdData = {
         ...data,
@@ -395,7 +400,7 @@ export default function AdGenerator() {
         eventTitle: titleTr,
         venue:      venueTr,
         presenter:  presenterTr,
-        time: timeEn, timeTo: timeToEn, day: dayEn, date: dateEn,
+        time: timeTr, timeTo: timeToTr, day: dayTr, date: dateTr,
         language: "en",
       };
       setEnData(translated);

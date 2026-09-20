@@ -233,7 +233,7 @@ export function EventAdLandscapeCanvas({ data }: { data: EventAdData }) {
                 margin: "14px 0 0",
                 whiteSpace: "pre-wrap",
               }}>
-                من تقديم: {data.presenter}
+                {isEn ? "Presented by: " : "من تقديم: "}{data.presenter}
               </p>
             )}
           </div>
