@@ -101,6 +101,54 @@ function toFilename(title: string, fallback: string): string {
   return s || fallback;
 }
 
+/* ── Ad history (localStorage) ── */
+const HISTORY_KEY = "ad-creator-history-v1";
+const MAX_HISTORY = 4;
+
+interface HistoryEntry {
+  id: string;
+  savedAt: number;
+  label: string;       // eventTitle for display
+  data: EventAdData;
+}
+
+function loadHistory(): HistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]"); }
+  catch { return []; }
+}
+
+function persistHistory(entries: HistoryEntry[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+  } catch {
+    // Storage quota exceeded — retry without bgImages
+    try {
+      const slim = entries.map(e => ({ ...e, data: { ...e.data, bgImage: "" } }));
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(slim));
+    } catch { /* ignore */ }
+  }
+}
+
+function addToHistory(data: EventAdData): HistoryEntry[] {
+  const entry: HistoryEntry = {
+    id: Date.now().toString(),
+    savedAt: Date.now(),
+    label: data.eventTitle.trim() || data.eventType.trim() || "إعلان",
+    data,
+  };
+  const next = [entry, ...loadHistory()].slice(0, MAX_HISTORY);
+  persistHistory(next);
+  return next;
+}
+
+function timeAgo(ts: number): string {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60)  return "الآن";
+  if (diff < 3600)  return `منذ ${Math.floor(diff / 60)} د`;
+  if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} س`;
+  return `منذ ${Math.floor(diff / 86400)} يوم`;
+}
+
 type ExportFormat = "pdf" | "png" | "jpeg";
 
 interface FormatOption {
@@ -266,6 +314,7 @@ const ImagePanControl = ({
 export default function AdGenerator() {
   /* ── Standard card state ── */
   const [data, setData] = useState<EventAdData>({ ...DEFAULT_DATA });
+  const [adHistory, setAdHistory] = useState<HistoryEntry[]>(() => loadHistory());
   const [exportFormat, setExportFormat] = useState<ExportFormat>("png");
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingEn, setIsExportingEn] = useState(false);
@@ -615,6 +664,7 @@ export default function AdGenerator() {
       } else {
         downloadDataUrl(canvas.toDataURL(fmt.mime, fmt.quality), `${toFilename(data.eventTitle, "إعلان-فعالية")}.${fmt.ext}`);
       }
+      setAdHistory(addToHistory(data));
     } catch (err) {
       console.error(err);
     } finally {
@@ -1270,6 +1320,76 @@ export default function AdGenerator() {
             )} {/* end standard card actions */}
           </div>
         </div>
+
+        {/* ── Recent Ads History ── */}
+        {adHistory.length > 0 && (
+          <div className="bg-card border border-card-border rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
+              <h2 className="text-sm font-bold">آخر الإعلانات</h2>
+              <button
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => { persistHistory([]); setAdHistory([]); }}
+              >
+                مسح الكل
+              </button>
+            </div>
+            <div className="space-y-2">
+              {adHistory.map(entry => (
+                <div key={entry.id}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 hover:border-primary/40 transition-colors"
+                >
+                  {/* Color swatch */}
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                    background: "linear-gradient(135deg, #0e3020 0%, #5ab8b0 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 14, color: "#fff", fontWeight: 700,
+                  }}>
+                    {entry.data.adMode === "announcement" ? "إع" : "دع"}
+                  </div>
+
+                  {/* Text */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold truncate leading-tight">
+                      {entry.label || "إعلان"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {entry.data.eventType || "—"} · {timeAgo(entry.savedAt)}
+                    </p>
+                  </div>
+
+                  {/* Load button */}
+                  <button
+                    className="text-xs font-medium text-primary hover:underline shrink-0"
+                    onClick={() => {
+                      setData({ ...entry.data });
+                      setCardMode("standard");
+                      setRawTime("");
+                      setRawTimeTo("");
+                      setRawDate("");
+                      setQrUrl(entry.data.meetingUrl || "");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  >
+                    تحميل
+                  </button>
+
+                  {/* Delete single */}
+                  <button
+                    className="text-[11px] text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                    onClick={() => {
+                      const next = adHistory.filter(e => e.id !== entry.id);
+                      persistHistory(next);
+                      setAdHistory(next);
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Preview ── */}
         <div className="space-y-3">
