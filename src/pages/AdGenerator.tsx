@@ -356,14 +356,11 @@ export default function AdGenerator() {
 
       const el = enExportRef.current;
       if (!el) return;
-      await new Promise(r => setTimeout(r, 300));
-      const canvas = await toCanvas(el, {
-        pixelRatio: 1,
-        width: activeW,
-        height: activeH,
-        cacheBust: true,
-        backgroundColor: "#ffffff",
-      });
+      const toCanvasOptsEn = { pixelRatio: 1, width: activeW, height: activeH, cacheBust: true, backgroundColor: "#ffffff" };
+      await new Promise(r => setTimeout(r, 400));
+      await toCanvas(el, toCanvasOptsEn).catch(() => {});
+      await new Promise(r => setTimeout(r, 200));
+      const canvas = await toCanvas(el, toCanvasOptsEn);
 
       if (fmt.id === "pdf") {
         const isLandscape = activeW > activeH;
@@ -501,13 +498,11 @@ export default function AdGenerator() {
     const cW = isLand ? FREE_CANVAS_W_L : FREE_CANVAS_W;
     const cH = isLand ? FREE_CANVAS_H_L : FREE_CANVAS_H;
     try {
-      await new Promise(r => setTimeout(r, 300));
-      const canvas = await toCanvas(el, {
-        pixelRatio: 1,
-        width: cW, height: cH,
-        cacheBust: true,
-        backgroundColor: "#ffffff",
-      });
+      const toCanvasOptsFree = { pixelRatio: 1, width: cW, height: cH, cacheBust: true, backgroundColor: "#ffffff" };
+      await new Promise(r => setTimeout(r, 400));
+      await toCanvas(el, toCanvasOptsFree).catch(() => {});
+      await new Promise(r => setTimeout(r, 200));
+      const canvas = await toCanvas(el, toCanvasOptsFree);
       const title = freeData.textBlocks[0]?.text || freeData.headerText || "بطاقة-حرة";
       if (fmt.id === "pdf") {
         const pdf = new jsPDF({
@@ -592,15 +587,20 @@ export default function AdGenerator() {
     if (!el) return;
     setIsExporting(true);
     const fmt = FORMAT_OPTIONS.find(f => f.id === exportFormat)!;
+    const toCanvasOpts = {
+      pixelRatio: 1,
+      width: activeW,
+      height: activeH,
+      cacheBust: true,
+      backgroundColor: "#ffffff",
+    };
     try {
-      await new Promise(r => setTimeout(r, 300));
-      const canvas = await toCanvas(el, {
-        pixelRatio: 1,
-        width: activeW,
-        height: activeH,
-        cacheBust: true,
-        backgroundColor: "#ffffff",
-      });
+      // First pass: forces all images to load into the html-to-image cache
+      await new Promise(r => setTimeout(r, 400));
+      await toCanvas(el, toCanvasOpts).catch(() => {});
+      // Second pass: captures with all images fully rendered
+      await new Promise(r => setTimeout(r, 200));
+      const canvas = await toCanvas(el, toCanvasOpts);
 
       if (fmt.id === "pdf") {
         const isLandscape = activeW > activeH;
@@ -626,13 +626,10 @@ export default function AdGenerator() {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      {/* Export canvases – clipped to zero-size wrapper so the browser renders
-          them at position (0,0) and doesn't skip off-screen paint. */}
-      <div style={{
-        position: "fixed", top: 0, left: 0,
-        width: 0, height: 0, overflow: "hidden",
-        zIndex: -1, pointerEvents: "none",
-      }}>
+      {/* Export canvases — positioned far off-screen so the browser
+          paints them fully (images load). overflow:hidden on a 0×0
+          wrapper causes browsers to skip image painting. */}
+      <div style={{ position: "fixed", top: "-99999px", left: "-99999px", pointerEvents: "none", zIndex: -1 }}>
         <div ref={exportRef} style={{ width: activeW, height: activeH }}>
           {orientation === "portrait"
             ? <EventAdCanvas data={data} />
@@ -641,33 +638,19 @@ export default function AdGenerator() {
         </div>
       </div>
 
-      {/* Free card export canvas — portrait */}
-      <div style={{
-        position: "fixed", top: 0, left: 0,
-        width: 0, height: 0, overflow: "hidden",
-        zIndex: -1, pointerEvents: "none",
-      }}>
+      <div style={{ position: "fixed", top: "-99999px", left: "-99999px", pointerEvents: "none", zIndex: -1 }}>
         <div ref={freeExportRef} style={{ width: FREE_CANVAS_W, height: FREE_CANVAS_H }}>
           <FreeCard data={freeData} />
         </div>
       </div>
 
-      {/* Free card export canvas — landscape */}
-      <div style={{
-        position: "fixed", top: 0, left: 0,
-        width: 0, height: 0, overflow: "hidden",
-        zIndex: -1, pointerEvents: "none",
-      }}>
+      <div style={{ position: "fixed", top: "-99999px", left: "-99999px", pointerEvents: "none", zIndex: -1 }}>
         <div ref={freeLandscapeExportRef} style={{ width: FREE_CANVAS_W_L, height: FREE_CANVAS_H_L }}>
           <FreeCardLandscape data={freeData} />
         </div>
       </div>
 
-      <div style={{
-        position: "fixed", top: 0, left: 0,
-        width: 0, height: 0, overflow: "hidden",
-        zIndex: -1, pointerEvents: "none",
-      }}>
+      <div style={{ position: "fixed", top: "-99999px", left: "-99999px", pointerEvents: "none", zIndex: -1 }}>
         <div ref={enExportRef} style={{ width: activeW, height: activeH }}>
           {enData && (orientation === "portrait"
             ? <EventAdCanvas data={enData} />
