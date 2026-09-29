@@ -42,6 +42,11 @@ export interface EventAdData {
   adMode: "invitation" | "announcement";
   language?: "ar" | "en";
   presenter?: string;
+  /* Template variant (portrait only). "classic" = original, "invitation" = curved-photo design */
+  template?: "classic" | "invitation";
+  /* Optional partner ("بالتعاون مع") — used by the invitation template */
+  partnerName?: string;
+  partnerLogo?: string;
 }
 
 const TEAL       = "#5ab8b0";

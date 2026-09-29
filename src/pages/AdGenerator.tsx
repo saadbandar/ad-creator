@@ -20,6 +20,15 @@ import {
   CANVAS_W_L, CANVAS_H_L,
   EventAdLandscapeCanvas,
 } from "@/components/TemplateLandscapeCanvas";
+import { EventAdInvitationCanvas } from "@/components/TemplateInvitationCanvas";
+
+/* Portrait canvas chosen by template; landscape has a single design */
+function StandardCanvas({ data, orientation }: { data: EventAdData; orientation: "portrait" | "landscape" }) {
+  if (orientation === "landscape") return <EventAdLandscapeCanvas data={data} />;
+  return data.template === "invitation"
+    ? <EventAdInvitationCanvas data={data} />
+    : <EventAdCanvas data={data} />;
+}
 import {
   FREE_CANVAS_W, FREE_CANVAS_H,
   FreeCard,
@@ -61,6 +70,9 @@ const DEFAULT_DATA: EventAdData = {
   hasCertificate: false,
   qrCodeImage: undefined,
   adMode: "invitation",
+  template: "classic",
+  partnerName: "",
+  partnerLogo: undefined,
 };
 
 const DEFAULT_FREE_DATA: FreeCardData = {
@@ -380,7 +392,7 @@ export default function AdGenerator() {
          otherwise fall back to translating the stored Arabic display value. */
       const [
         repTr, typeTr, titleTr, venueTr, presenterTr,
-        timeTr, timeToTr, dayTr, dateTr,
+        timeTr, timeToTr, dayTr, dateTr, partnerTr,
       ] = await Promise.all([
         tr(data.representedBy ?? ""),
         tr(data.eventType),
@@ -391,6 +403,7 @@ export default function AdGenerator() {
         rawTimeTo ? Promise.resolve(formatEn12(rawTimeTo)) : (data.timeTo ? tr(data.timeTo) : Promise.resolve<string | undefined>(undefined)),
         enDateFromRaw ? Promise.resolve(enDateFromRaw.day)  : tr(data.day),
         enDateFromRaw ? Promise.resolve(enDateFromRaw.date) : tr(data.date),
+        tr(data.partnerName ?? ""),
       ]);
 
       const translated: EventAdData = {
@@ -400,6 +413,7 @@ export default function AdGenerator() {
         eventTitle: titleTr,
         venue:      venueTr,
         presenter:  presenterTr,
+        partnerName: partnerTr,
         time: timeTr, timeTo: timeToTr, day: dayTr, date: dateTr,
         language: "en",
       };
@@ -686,10 +700,7 @@ export default function AdGenerator() {
           wrapper causes browsers to skip image painting. */}
       <div style={{ position: "fixed", top: "-99999px", left: "-99999px", pointerEvents: "none", zIndex: -1 }}>
         <div ref={exportRef} style={{ width: activeW, height: activeH }}>
-          {orientation === "portrait"
-            ? <EventAdCanvas data={data} />
-            : <EventAdLandscapeCanvas data={data} />
-          }
+          <StandardCanvas data={data} orientation={orientation} />
         </div>
       </div>
 
@@ -707,10 +718,7 @@ export default function AdGenerator() {
 
       <div style={{ position: "fixed", top: "-99999px", left: "-99999px", pointerEvents: "none", zIndex: -1 }}>
         <div ref={enExportRef} style={{ width: activeW, height: activeH }}>
-          {enData && (orientation === "portrait"
-            ? <EventAdCanvas data={enData} />
-            : <EventAdLandscapeCanvas data={enData} />
-          )}
+          {enData && <StandardCanvas data={enData} orientation={orientation} />}
         </div>
       </div>
 
@@ -800,6 +808,59 @@ export default function AdGenerator() {
               })}
             </div>
           </Section>
+
+          {/* Template picker — standard card only */}
+          {cardMode === "standard" && (
+            <Section title="تصميم القالب">
+              <div className="flex gap-2">
+                {([
+                  { id: "classic",    label: "الكلاسيكي" },
+                  { id: "invitation", label: "قالب الدعوة" },
+                ] as const).map(t => (
+                  <button key={t.id}
+                    onClick={() => set("template", t.id)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all ${
+                      (data.template ?? "classic") === t.id
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-foreground border-border hover:border-primary/50"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {data.template === "invitation" && (
+                <div className="space-y-2 pt-2">
+                  <Field label="بالتعاون مع (اختياري)" value={data.partnerName ?? ""}
+                    onChange={v => set("partnerName", v)}
+                    hint="صندوق تنمية الموارد البشرية …" />
+                  <p className="text-xs text-muted-foreground font-medium">شعار الجهة المتعاونة (اختياري — يظهر أعلى اليسار)</p>
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-primary/40 rounded-lg p-2 cursor-pointer hover:border-primary/70 hover:bg-primary/5 transition-all text-xs">
+                      <ImageIcon className="h-4 w-4 text-primary/60" />
+                      رفع شعار (PNG بخلفية شفافة)
+                      <input type="file" accept="image/*" className="hidden" onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = ev => ev.target?.result && set("partnerLogo", ev.target.result as string);
+                        reader.readAsDataURL(file);
+                        e.target.value = "";
+                      }} />
+                    </label>
+                    {data.partnerLogo && (
+                      <>
+                        <img src={data.partnerLogo} alt="" className="h-9 w-16 object-contain rounded bg-[#3c7974] p-1" />
+                        <button onClick={() => set("partnerLogo", undefined)}
+                          className="text-xs text-muted-foreground hover:text-destructive">✕</button>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">قالب الدعوة متاح للاتجاه العمودي فقط؛ الأفقي يستخدم التصميم الكلاسيكي.</p>
+                </div>
+              )}
+            </Section>
+          )}
 
           {/* ══ FREE CARD FORM ══ */}
           {cardMode === "free" && (<>
@@ -1505,9 +1566,7 @@ function PreviewCanvas({
           ? (freeOrientation === "landscape"
               ? <FreeCardLandscape data={freeData} />
               : <FreeCard data={freeData} />)
-          : orientation === "portrait"
-            ? <EventAdCanvas data={data} />
-            : <EventAdLandscapeCanvas data={data} />
+          : <StandardCanvas data={data} orientation={orientation} />
         }
       </div>
     </div>
