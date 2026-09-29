@@ -71,7 +71,6 @@ const DEFAULT_DATA: EventAdData = {
   qrCodeImage: undefined,
   adMode: "invitation",
   template: "classic",
-  partnerName: "",
   partnerLogo: undefined,
 };
 
@@ -87,6 +86,18 @@ const DEFAULT_FREE_DATA: FreeCardData = {
   dayDate: "",
   venue: "",
 };
+
+/* ── Numeric date "D/M/YYYY" in Hijri (Umm al-Qura) or Gregorian ── */
+function numericDate(d: Date, mode: "hijri" | "gregorian", lang: "ar" | "en"): string {
+  if (mode === "gregorian") {
+    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  }
+  const s = new Intl.DateTimeFormat("en-US-u-ca-islamic-umalqura-nu-latn", {
+    day: "numeric", month: "numeric", year: "numeric",
+  }).format(d); // "M/D/YYYY AH"
+  const [m, day, y] = s.replace(/\s*AH$/i, "").split("/");
+  return lang === "ar" ? `${day}/${m}/${y} هـ` : `${day}/${m}/${y} AH`;
+}
 
 /* ── Download helper — works on iOS Safari (opens in new tab) ── */
 function downloadDataUrl(dataUrl: string, filename: string) {
@@ -336,6 +347,8 @@ export default function AdGenerator() {
   const [rawTime, setRawTime] = useState("");
   const [rawTimeTo, setRawTimeTo] = useState("");
   const [rawDate, setRawDate] = useState("");
+  const [dateMode, setDateMode] = useState<"hijri" | "gregorian">("hijri");
+  const [manualTime, setManualTime] = useState(false);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const [scale, setScale] = useState(0.35);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -383,7 +396,7 @@ export default function AdGenerator() {
         const d = new Date(rawDate + "T12:00:00");
         return {
           day:  new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d),
-          date: new Intl.DateTimeFormat("en-US", { day: "numeric", month: "long", year: "numeric" }).format(d),
+          date: numericDate(d, dateMode, "en"),
         };
       })() : null;
 
@@ -392,7 +405,7 @@ export default function AdGenerator() {
          otherwise fall back to translating the stored Arabic display value. */
       const [
         repTr, typeTr, titleTr, venueTr, presenterTr,
-        timeTr, timeToTr, dayTr, dateTr, partnerTr,
+        timeTr, timeToTr, dayTr, dateTr,
       ] = await Promise.all([
         tr(data.representedBy ?? ""),
         tr(data.eventType),
@@ -403,7 +416,6 @@ export default function AdGenerator() {
         rawTimeTo ? Promise.resolve(formatEn12(rawTimeTo)) : (data.timeTo ? tr(data.timeTo) : Promise.resolve<string | undefined>(undefined)),
         enDateFromRaw ? Promise.resolve(enDateFromRaw.day)  : tr(data.day),
         enDateFromRaw ? Promise.resolve(enDateFromRaw.date) : tr(data.date),
-        tr(data.partnerName ?? ""),
       ]);
 
       const translated: EventAdData = {
@@ -413,7 +425,6 @@ export default function AdGenerator() {
         eventTitle: titleTr,
         venue:      venueTr,
         presenter:  presenterTr,
-        partnerName: partnerTr,
         time: timeTr, timeTo: timeToTr, day: dayTr, date: dateTr,
         language: "en",
       };
@@ -448,7 +459,7 @@ export default function AdGenerator() {
       setIsExportingEn(false);
       setEnData(null);
     }
-  }, [data, exportFormat, rawTime, rawDate, orientation, tr]);
+  }, [data, exportFormat, rawTime, rawTimeTo, rawDate, dateMode, orientation, tr]);
 
   const generateQrFromUrl = useCallback(async (url: string) => {
     if (!url.trim()) return;
@@ -637,17 +648,14 @@ export default function AdGenerator() {
     set("timeTo", raw ? formatEn12(raw).replace("PM", "م").replace("AM", "ص") : undefined);
   };
 
-  /* ── Date picker: "YYYY-MM-DD" → day name + Hijri formatted date ── */
-  const handleDateChange = (raw: string) => {
+  /* ── Date picker: "YYYY-MM-DD" → day name + numeric date (Hijri or Gregorian) ── */
+  const handleDateChange = (raw: string, mode: "hijri" | "gregorian" = dateMode) => {
     setRawDate(raw);
     if (!raw) return;
     const d = new Date(raw + "T12:00:00"); // noon avoids timezone flips
     const dayName = new Intl.DateTimeFormat("ar-SA", { weekday: "long" }).format(d);
-    const dateStr = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", {
-      day: "numeric", month: "numeric", year: "numeric",
-    }).format(d);
     set("day",  dayName);
-    set("date", dateStr);
+    set("date", numericDate(d, mode, "ar"));
   };
 
   const exportAsImage = useCallback(async () => {
@@ -831,9 +839,6 @@ export default function AdGenerator() {
               </div>
               {data.template === "invitation" && (
                 <div className="space-y-2 pt-2">
-                  <Field label="بالتعاون مع (اختياري)" value={data.partnerName ?? ""}
-                    onChange={v => set("partnerName", v)}
-                    hint="صندوق تنمية الموارد البشرية …" />
                   <p className="text-xs text-muted-foreground font-medium">شعار الجهة المتعاونة (اختياري — يظهر أعلى اليسار)</p>
                   <div className="flex items-center gap-2">
                     <label className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-primary/40 rounded-lg p-2 cursor-pointer hover:border-primary/70 hover:bg-primary/5 transition-all text-xs">
@@ -1127,8 +1132,25 @@ export default function AdGenerator() {
           <Section title="التاريخ والوقت">
             {/* ── Time picker + optional range ── */}
             <div className="space-y-2">
-              <div className="space-y-0.5">
+              <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground font-medium">الساعة</p>
+                <div className="flex rounded-md overflow-hidden border border-input text-[11px]">
+                  {([false, true] as const).map(m => (
+                    <button key={String(m)}
+                      onClick={() => { setManualTime(m); if (m) { setRawTime(""); setRawTimeTo(""); } }}
+                      className={`px-2 py-0.5 transition-colors ${
+                        manualTime === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {m ? "كتابة" : "اختيار"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {manualTime ? (
+                <Input value={data.time} placeholder="مثال: ٩:٣٠ ص / بعد صلاة العشاء"
+                  onChange={e => set("time", e.target.value)} className="text-xs" />
+              ) : (
                 <input
                   type="time"
                   value={rawTime}
@@ -1136,7 +1158,7 @@ export default function AdGenerator() {
                   className="w-full rounded-md border border-input bg-background px-1 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors"
                   style={{ direction: "ltr", colorScheme: "light" }}
                 />
-              </div>
+              )}
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -1155,13 +1177,18 @@ export default function AdGenerator() {
               {hasTime && (
                 <div className="space-y-0.5">
                   <p className="text-[11px] text-muted-foreground">إلى الساعة</p>
-                  <input
-                    type="time"
-                    value={rawTimeTo}
-                    onChange={e => handleTimeToChange(e.target.value)}
-                    className="w-full rounded-md border border-input bg-background px-1 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors"
-                    style={{ direction: "ltr", colorScheme: "light" }}
-                  />
+                  {manualTime ? (
+                    <Input value={data.timeTo ?? ""} placeholder="مثال: ١٢:٠٠ ظهراً"
+                      onChange={e => set("timeTo", e.target.value || undefined)} className="text-xs" />
+                  ) : (
+                    <input
+                      type="time"
+                      value={rawTimeTo}
+                      onChange={e => handleTimeToChange(e.target.value)}
+                      className="w-full rounded-md border border-input bg-background px-1 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors"
+                      style={{ direction: "ltr", colorScheme: "light" }}
+                    />
+                  )}
                 </div>
               )}
               {data.time && (
@@ -1171,9 +1198,23 @@ export default function AdGenerator() {
               )}
             </div>
 
-            {/* ── Date picker ── */}
+            {/* ── Date picker + Hijri/Gregorian toggle ── */}
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground font-medium">التاريخ</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground font-medium">التاريخ</p>
+                <div className="flex rounded-md overflow-hidden border border-input text-[11px]">
+                  {(["hijri", "gregorian"] as const).map(mode => (
+                    <button key={mode}
+                      onClick={() => { setDateMode(mode); if (rawDate) handleDateChange(rawDate, mode); }}
+                      className={`px-2 py-0.5 transition-colors ${
+                        dateMode === mode ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {mode === "hijri" ? "هجري" : "ميلادي"}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <input
                 type="date"
                 value={rawDate}

@@ -34,7 +34,7 @@ export function EventAdInvitationCanvas({ data }: { data: EventAdData }) {
     time, timeTo, day, date,
     locationType, venue, meetingUrl,
     hasCertificate, qrCodeImage, adMode,
-    language, presenter, partnerName, partnerLogo,
+    language, presenter, partnerLogo,
   } = data;
 
   const isEn           = language === "en";
@@ -52,21 +52,19 @@ export function EventAdInvitationCanvas({ data }: { data: EventAdData }) {
     repBy:   isEn ? "represented by" : "ممثلة بـ",
     online:  isEn ? "Online" : "عن بُعد",
     cert:    isEn ? "Attendance Certificate" : "شهادة حضور",
-    with:    isEn ? "in collaboration with" : "بالتعاون مع",
   };
 
-  /* Intro sentence — mirrors the reference wording */
+  /* Intro sentence */
   const intro = (() => {
     const who = representedBy ? `${L.college} ${L.repBy} ${representedBy}` : L.college;
-    const collab = partnerName ? ` ${L.with} ${partnerName}` : "";
     if (isEn) {
       return isAnnouncement
-        ? `${who}${collab} announces ${eventType || "an event"} entitled`
-        : `${who} is pleased to invite you${collab} to attend ${eventType || "an event"} entitled`;
+        ? `${who} announces ${eventType || "an event"} entitled`
+        : `${who} is pleased to invite you to attend ${eventType || "an event"} entitled`;
     }
     return isAnnouncement
-      ? `تعلن ${who}${collab} عن إقامة ${eventType || "فعالية"} بعنوان`
-      : `يسرّ ${who} دعوتكم${collab} لحضور ${eventType || "فعالية"} بعنوان`;
+      ? `تعلن ${who} عن إقامة ${eventType || "فعالية"} بعنوان`
+      : `يسرّ ${who} دعوتكم لحضور ${eventType || "فعالية"} بعنوان`;
   })();
 
   /* Shrink body when it overflows the fixed white area */
@@ -132,10 +130,10 @@ export function EventAdInvitationCanvas({ data }: { data: EventAdData }) {
       {/* ── 3. CURVE — teal band + white body edge ── */}
       <div style={{ position: "absolute", top: CURVE_TOP, left: 0, right: 0, height: 140, zIndex: 15 }}>
         <svg viewBox="0 0 1080 140" preserveAspectRatio="none" width="1080" height="140">
-          {/* teal accent band */}
-          <path d="M0,140 L0,118 Q540,-30 1080,100 L1080,140 Z" fill={DARK_TEAL} />
+          {/* teal accent band — symmetric dome */}
+          <path d="M0,140 L0,116 Q540,-44 1080,116 L1080,140 Z" fill={DARK_TEAL} />
           {/* white body */}
-          <path d="M0,140 L0,134 Q540,-6 1080,120 L1080,140 Z" fill="#ffffff" />
+          <path d="M0,140 Q540,-10 1080,140 Z" fill="#ffffff" />
         </svg>
       </div>
 

@@ -44,8 +44,7 @@ export interface EventAdData {
   presenter?: string;
   /* Template variant (portrait only). "classic" = original, "invitation" = curved-photo design */
   template?: "classic" | "invitation";
-  /* Optional partner ("بالتعاون مع") — used by the invitation template */
-  partnerName?: string;
+  /* Optional partner logo (top-left) — used by the invitation template */
   partnerLogo?: string;
 }
 
@@ -93,13 +92,12 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
     repBy:       isEn ? "Represented by" : "ممثلة بـ",
     online:      isEn ? "Online"         : "عن بُعد",
     certificate: isEn ? "Attendance Certificate Available" : "يوجد شهادات حضور",
-    footer:      isEn ? "Public Relations Unit" : "وحدة العلاقات العامة",
   };
 
   /* Content scale — shrinks text when it overflows the fixed white area */
   const contentRef  = useRef<HTMLDivElement>(null);
   const [contentScale, setContentScale] = useState(1);
-  const MAX_CONTENT_H = 1790 - 710 - 36; // available px in white section
+  const MAX_CONTENT_H = 1720 - 710 - 36; // available px in white section
 
   useEffect(() => {
     const el = contentRef.current;
@@ -108,30 +106,10 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
     setContentScale(h > MAX_CONTENT_H ? MAX_CONTENT_H / h : 1);
   });
 
-  /* Pre-convert social bar to white so CSS filter isn't needed during export */
-  const [whiteSocial, setWhiteSocial] = useState(socialBar);
-  useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const cv = document.createElement("canvas");
-      cv.width = img.naturalWidth; cv.height = img.naturalHeight;
-      const ctx = cv.getContext("2d")!;
-      ctx.drawImage(img, 0, 0);
-      const id = ctx.getImageData(0, 0, cv.width, cv.height);
-      for (let i = 0; i < id.data.length; i += 4) {
-        if (id.data[i + 3] > 0) { id.data[i] = 255; id.data[i+1] = 255; id.data[i+2] = 255; }
-      }
-      ctx.putImageData(id, 0, 0);
-      setWhiteSocial(cv.toDataURL());
-    };
-    img.src = socialBar;
-  }, []);
-
   const PHOTO_H    = 700;
   const CURVE_TOP  = 598;
   const WHITE_TOP  = 710;
-  const FOOTER_TOP = 1790;
+  const FOOTER_TOP = 1720;
 
   return (
     <div style={{
@@ -353,19 +331,18 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
       <div style={{
         position: "absolute",
         top: FOOTER_TOP, left: 0, right: 0, bottom: 0,
-        backgroundColor: DARK_TEAL,
-        zIndex: 20,
-        display: "flex", alignItems: "center",
-        padding: "0 36px",
-        direction: "ltr",
-        gap: 24,
+        backgroundColor: "#ffffff",
+        zIndex: 20, direction: "ltr",
       }}>
-        <span style={{ color: "#ffffff", fontSize: 32, fontWeight: 700, fontFamily: "inherit", flexShrink: 0, letterSpacing: 0 }}>
-          {L.footer}
-        </span>
-        <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
-          <img src={whiteSocial} alt="" crossOrigin="anonymous" style={{ height: 80, objectFit: "contain" }} />
-        </div>
+        <img src={socialBar} alt="" crossOrigin="anonymous" style={{
+          position: "absolute", left: "50%", top: "50%",
+          transform: "translate(-50%, -50%)",
+          height: 120, objectFit: "contain",
+        }} />
+        <img src={badgeImg} alt="" crossOrigin="anonymous" style={{
+          position: "absolute", left: 44, bottom: 36,
+          width: 130, height: 130, objectFit: "contain",
+        }} />
       </div>
 
     </div>
