@@ -130,10 +130,8 @@ export function EventAdInvitationCanvas({ data }: { data: EventAdData }) {
       {/* ── 3. CURVE — teal band + white body edge ── */}
       <div style={{ position: "absolute", top: CURVE_TOP, left: 0, right: 0, height: 140, zIndex: 15 }}>
         <svg viewBox="0 0 1080 140" preserveAspectRatio="none" width="1080" height="140">
-          {/* teal accent band — symmetric dome */}
-          <path d="M0,140 L0,116 Q540,-44 1080,116 L1080,140 Z" fill={DARK_TEAL} />
-          {/* white body */}
-          <path d="M0,140 Q540,-10 1080,140 Z" fill="#ffffff" />
+          {/* white body — symmetric dome, no band */}
+          <path d="M0,140 L0,116 Q540,-44 1080,116 L1080,140 Z" fill="#ffffff" />
         </svg>
       </div>
 

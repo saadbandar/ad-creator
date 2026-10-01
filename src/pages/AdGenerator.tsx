@@ -822,8 +822,8 @@ export default function AdGenerator() {
             <Section title="تصميم القالب">
               <div className="flex gap-2">
                 {([
-                  { id: "classic",    label: "الكلاسيكي" },
-                  { id: "invitation", label: "قالب الدعوة" },
+                  { id: "classic",    label: "قالب ١" },
+                  { id: "invitation", label: "قالب ٢" },
                 ] as const).map(t => (
                   <button key={t.id}
                     onClick={() => set("template", t.id)}
@@ -861,7 +861,7 @@ export default function AdGenerator() {
                       </>
                     )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">قالب الدعوة متاح للاتجاه العمودي فقط؛ الأفقي يستخدم التصميم الكلاسيكي.</p>
+                  <p className="text-[11px] text-muted-foreground">القالب ٢ متاح للاتجاه العمودي فقط؛ الأفقي يستخدم تصميماً واحداً.</p>
                 </div>
               )}
             </Section>

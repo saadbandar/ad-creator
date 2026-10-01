@@ -180,7 +180,6 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
             </linearGradient>
           </defs>
           <path d="M0,120 L0,72 Q540,8 1080,72 L1080,120 Z" fill="#ffffff" />
-          <path d="M0,72 Q540,8 1080,72 Q540,36 0,72 Z" fill="url(#arcFillGrad)" />
         </svg>
       </div>
 
