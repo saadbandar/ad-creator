@@ -20,14 +20,11 @@ import {
   CANVAS_W_L, CANVAS_H_L,
   EventAdLandscapeCanvas,
 } from "@/components/TemplateLandscapeCanvas";
-import { EventAdInvitationCanvas } from "@/components/TemplateInvitationCanvas";
 
 /* Portrait canvas chosen by template; landscape has a single design */
 function StandardCanvas({ data, orientation }: { data: EventAdData; orientation: "portrait" | "landscape" }) {
   if (orientation === "landscape") return <EventAdLandscapeCanvas data={data} />;
-  return data.template === "invitation"
-    ? <EventAdInvitationCanvas data={data} />
-    : <EventAdCanvas data={data} />;
+  return <EventAdCanvas data={data} />;
 }
 import {
   FREE_CANVAS_W, FREE_CANVAS_H,
@@ -70,8 +67,6 @@ const DEFAULT_DATA: EventAdData = {
   hasCertificate: false,
   qrCodeImage: undefined,
   adMode: "invitation",
-  template: "classic",
-  partnerLogo: undefined,
 };
 
 const DEFAULT_FREE_DATA: FreeCardData = {
@@ -817,56 +812,6 @@ export default function AdGenerator() {
             </div>
           </Section>
 
-          {/* Template picker — standard card only */}
-          {cardMode === "standard" && (
-            <Section title="تصميم القالب">
-              <div className="flex gap-2">
-                {([
-                  { id: "classic",    label: "قالب ١" },
-                  { id: "invitation", label: "قالب ٢" },
-                ] as const).map(t => (
-                  <button key={t.id}
-                    onClick={() => set("template", t.id)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all ${
-                      (data.template ?? "classic") === t.id
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background text-foreground border-border hover:border-primary/50"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-              {data.template === "invitation" && (
-                <div className="space-y-2 pt-2">
-                  <p className="text-xs text-muted-foreground font-medium">شعار الجهة المتعاونة (اختياري — يظهر أعلى اليسار)</p>
-                  <div className="flex items-center gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-primary/40 rounded-lg p-2 cursor-pointer hover:border-primary/70 hover:bg-primary/5 transition-all text-xs">
-                      <ImageIcon className="h-4 w-4 text-primary/60" />
-                      رفع شعار (PNG بخلفية شفافة)
-                      <input type="file" accept="image/*" className="hidden" onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = ev => ev.target?.result && set("partnerLogo", ev.target.result as string);
-                        reader.readAsDataURL(file);
-                        e.target.value = "";
-                      }} />
-                    </label>
-                    {data.partnerLogo && (
-                      <>
-                        <img src={data.partnerLogo} alt="" className="h-9 w-16 object-contain rounded bg-[#3c7974] p-1" />
-                        <button onClick={() => set("partnerLogo", undefined)}
-                          className="text-xs text-muted-foreground hover:text-destructive">✕</button>
-                      </>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">القالب ٢ متاح للاتجاه العمودي فقط؛ الأفقي يستخدم تصميماً واحداً.</p>
-                </div>
-              )}
-            </Section>
-          )}
-
           {/* ══ FREE CARD FORM ══ */}
           {cardMode === "free" && (<>
 
@@ -1428,6 +1373,66 @@ export default function AdGenerator() {
           </div>
         </div>
 
+        {/* ── Preview + history ── */}
+        <div className="space-y-3">
+          <div className="bg-card border border-card-border rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
+              <h2 className="text-sm font-bold">معاينة الإعلان</h2>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Eye className="h-3.5 w-3.5" />
+                {cardMode === "free"
+                  ? (freeOrientation === "landscape" ? "1920 × 1080" : "1080 × 1920")
+                  : (orientation === "portrait" ? "1080 × 1920" : "1920 × 1080")} بكسل
+              </div>
+            </div>
+
+            {/* Orientation toggle — all card types */}
+            <div className="flex gap-2 mb-3">
+              {(["portrait", "landscape"] as const).map(o => (
+                <button
+                  key={o}
+                  onClick={() => cardMode === "free" ? setFreeOrientation(o) : setOrientation(o)}
+                  className={`flex-1 py-2 rounded-lg border-2 text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+                    (cardMode === "free" ? freeOrientation : orientation) === o
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  {o === "portrait"
+                    ? <><span style={{ fontSize: 16 }}>▮</span> عمودي (Story)</>
+                    : <><span style={{ fontSize: 16 }}>▬</span> أفقي (Landscape)</>
+                  }
+                </button>
+              ))}
+            </div>
+
+            {/* Canvas wrapper */}
+            <PreviewCanvas
+              cardMode={cardMode}
+              freeOrientation={freeOrientation}
+              orientation={orientation}
+              wrapperRef={wrapperRef}
+              scale={scale}
+              freeData={freeData}
+              data={data}
+              activeW={activeW}
+              activeH={activeH}
+            />
+          </div>
+
+          <div className="bg-accent/20 border border-accent-border rounded-lg px-4 py-2.5">
+            <p className="text-xs text-foreground/70">
+              {cardMode === "free"
+                ? freeOrientation === "landscape"
+                  ? <><strong>أفقي حر:</strong> 1920×1080 بكسل — مناسب للشاشات والعروض التقديمية.</>
+                  : <><strong>عمودي حر:</strong> 1080×1920 بكسل — مناسب لقصص سناب شات وإنستغرام.</>
+                : orientation === "portrait"
+                  ? <><strong>عمودي:</strong> 1080×1920 بكسل — مناسب لقصص سناب شات وإنستغرام.</>
+                  : <><strong>أفقي:</strong> 1920×1080 بكسل — مناسب للشاشات والعروض التقديمية.</>
+              }
+            </p>
+          </div>
+
         {/* ── Recent Ads History ── */}
         {adHistory.length > 0 && (
           <div className="bg-card border border-card-border rounded-xl p-4 shadow-sm">
@@ -1497,66 +1502,6 @@ export default function AdGenerator() {
             </div>
           </div>
         )}
-
-        {/* ── Preview ── */}
-        <div className="space-y-3">
-          <div className="bg-card border border-card-border rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
-              <h2 className="text-sm font-bold">معاينة الإعلان</h2>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Eye className="h-3.5 w-3.5" />
-                {cardMode === "free"
-                  ? (freeOrientation === "landscape" ? "1920 × 1080" : "1080 × 1920")
-                  : (orientation === "portrait" ? "1080 × 1920" : "1920 × 1080")} بكسل
-              </div>
-            </div>
-
-            {/* Orientation toggle — all card types */}
-            <div className="flex gap-2 mb-3">
-              {(["portrait", "landscape"] as const).map(o => (
-                <button
-                  key={o}
-                  onClick={() => cardMode === "free" ? setFreeOrientation(o) : setOrientation(o)}
-                  className={`flex-1 py-2 rounded-lg border-2 text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
-                    (cardMode === "free" ? freeOrientation : orientation) === o
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border hover:border-primary/40"
-                  }`}
-                >
-                  {o === "portrait"
-                    ? <><span style={{ fontSize: 16 }}>▮</span> عمودي (Story)</>
-                    : <><span style={{ fontSize: 16 }}>▬</span> أفقي (Landscape)</>
-                  }
-                </button>
-              ))}
-            </div>
-
-            {/* Canvas wrapper */}
-            <PreviewCanvas
-              cardMode={cardMode}
-              freeOrientation={freeOrientation}
-              orientation={orientation}
-              wrapperRef={wrapperRef}
-              scale={scale}
-              freeData={freeData}
-              data={data}
-              activeW={activeW}
-              activeH={activeH}
-            />
-          </div>
-
-          <div className="bg-accent/20 border border-accent-border rounded-lg px-4 py-2.5">
-            <p className="text-xs text-foreground/70">
-              {cardMode === "free"
-                ? freeOrientation === "landscape"
-                  ? <><strong>أفقي حر:</strong> 1920×1080 بكسل — مناسب للشاشات والعروض التقديمية.</>
-                  : <><strong>عمودي حر:</strong> 1080×1920 بكسل — مناسب لقصص سناب شات وإنستغرام.</>
-                : orientation === "portrait"
-                  ? <><strong>عمودي:</strong> 1080×1920 بكسل — مناسب لقصص سناب شات وإنستغرام.</>
-                  : <><strong>أفقي:</strong> 1920×1080 بكسل — مناسب للشاشات والعروض التقديمية.</>
-              }
-            </p>
-          </div>
         </div>
 
       </div>

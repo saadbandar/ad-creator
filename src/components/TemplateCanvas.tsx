@@ -42,10 +42,6 @@ export interface EventAdData {
   adMode: "invitation" | "announcement";
   language?: "ar" | "en";
   presenter?: string;
-  /* Template variant (portrait only). "classic" = original, "invitation" = curved-photo design */
-  template?: "classic" | "invitation";
-  /* Optional partner logo (top-left) — used by the invitation template */
-  partnerLogo?: string;
 }
 
 const TEAL       = "#5ab8b0";
@@ -180,6 +176,7 @@ export function EventAdCanvas({ data }: { data: EventAdData }) {
             </linearGradient>
           </defs>
           <path d="M0,120 L0,72 Q540,8 1080,72 L1080,120 Z" fill="#ffffff" />
+          <path d="M0,72 Q540,8 1080,72 Q540,36 0,72 Z" fill="url(#arcFillGrad)" />
         </svg>
       </div>
 
